@@ -80,13 +80,15 @@ void playSequence() {
   for (int i = 0; i < sequence.length(); i++) {
     char currentNote = sequence[i];
     if (currentNote != ' ') { // Ignoruj spacje w sekwencji
-      char noteName = playToneAndGetNoteName(currentNote);
+      // Wyświetl całą sekwencję do bieżącej nuty
       lcd.setCursor(0, 1);
-      lcd.print("Nuta: ");
-      lcd.print(noteName);
+      lcd.print(sequence.substring(0, i + 1)); // Wyświetl do bieżącego miejsca w sekwencji
+
+      char noteName = playToneAndGetNoteName(currentNote);
       delay(600); // Krótkie opóźnienie na wyświetlanie nazwy nuty
     }
   }
+
   delay(500);
   lcd.setCursor(0, 1);
   lcd.print("Koniec!       "); // Wyczyść linię po zakończeniu
