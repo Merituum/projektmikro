@@ -10,15 +10,15 @@ const byte COLS = 4;
 
 // Mapowanie klawiszy klawiatury 4x4
 char keys[ROWS][COLS] = {
-  {'*', '0', '#', 'Z'}, //'*' - reset, 0 - Zagraj od początku, # zwiększenie tonacji, 'Z' - zmniejszenie tonacji
-  {'1', '2', '3', 'A'}, // C, D, E, F
-  {'4', '5', '6', 'B'}, // F, G, A, G (wysokie Sol)
-  {'7', '8', '9', 'C'}  // B, C, D, A
+  {'*', '0', '#', 'Z'},  // '*': reset, '0': Zagraj od początku, '#': zwiększenie tonacji, 'Z': zmniejszenie tonacji
+  {'C', 'D', 'E', 'F'},  // '1': C, '2': D, '3': E, 'F': F
+  {'F', 'G', 'A', 'G'},  // '4': F, '5': G, '6': A, 'G': G (wysokie Sol)
+  {'B', 'C', 'D', 'A'}   // '7': B, '8': C, '9': D, 'A': A (akord)
 };
 
 // Piny wierszy i kolumn klawiatury podłączone do Arduino
-byte rowPins[ROWS] = {6, 7, 8, 9};    // Piny wierszy
-byte colPins[COLS] = {10, 13, A1, A2}; // Piny kolumn
+byte rowPins[ROWS] = {6, 7, 8, 9};         // Piny wierszy klawiatury
+byte colPins[COLS] = {10, 13, A1, A2};    // Piny kolumn klawiatury
 
 // Inicjalizacja klawiatury
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
@@ -39,22 +39,31 @@ char playToneAndGetNoteName(char key) {
 
   // Wylicz częstotliwość na podstawie klawisza i przypisz odpowiednią nazwę nuty
   int index = -1;
-  if (key >= '1' && key <= '9') {
-    index = key - '1'; // Mapowanie 1-9 na indeksy 0-8
-  } else if (key == 'A') {
+  if (key == 'C') {
+    index = 0; // C
+    note = 'C';
+  } else if (key == 'D') {
+    index = 1; // D
+    note = 'D';
+  } else if (key == 'E') {
+    index = 2; // E
+    note = 'E';
+  } else if (key == 'F') {
     index = 3; // F
     note = 'F';
-  } else if (key == 'B') {
+  } else if (key == 'G') {
     index = 4; // G
     note = 'G';
-  } else if (key == 'C') {
+  } else if (key == 'A') {
     index = 5; // A
     note = 'A';
+  } else if (key == 'B') {
+    index = 6; // B
+    note = 'B';
   }
 
   if (index != -1) {
     int frequency = baseFrequencies[index] + toneShift;
-    note = "CDEFGABCDFA"[index]; // Pobierz nazwę nuty z tablicy
     tone(buzzerPin, frequency, 500); // Graj dźwięk przez 500 ms
     delay(500); // Dłuższe wybrzmiewanie dźwięku
     noTone(buzzerPin); // Wyłączenie dźwięku
@@ -67,7 +76,6 @@ char playToneAndGetNoteName(char key) {
 void playSequence() {
   lcd.clear();
   lcd.setCursor(0, 0);
-  // lcd.print("Odtwarzanie...");
 
   for (int i = 0; i < sequence.length(); i++) {
     char currentNote = sequence[i];
