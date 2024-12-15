@@ -10,7 +10,7 @@ const byte COLS = 4;
 
 // Mapowanie klawiszy klawiatury 4x4
 char keys[ROWS][COLS] = {
-  {'*', '0', '#', 'D'}, //'*' - reset, 0 - Zagraj od początku, # zwiększenie tonacji, 'D' - zmniejszenie tonacji
+  {'*', '0', '#', 'Z'}, //'*' - reset, 0 - Zagraj od początku, # zwiększenie tonacji, 'Z' - zmniejszenie tonacji
   {'1', '2', '3', 'A'}, // C, D, E, F
   {'4', '5', '6', 'B'}, // F, G, A, G (wysokie Sol)
   {'7', '8', '9', 'C'}  // B, C, D, A
@@ -32,69 +32,64 @@ String sequence = "";
 // Bieżąca tonacja
 int toneShift = 0;
 
-// Funkcja do odtwarzania dźwięku dla różnych klawiszy i zwracania odpowiadającej litery
+// Funkcja do odtwarzania dźwięku i zwracania nazwy nuty w literach
 char playToneAndGetNoteName(char key) {
   int baseFrequencies[] = {262, 294, 330, 349, 392, 440, 494, 523, 587, 698, 784, 880};
   char note = '?';
 
-  switch (key) {
-    case '1': case '2': case '3': case '4': case '5': case '6':
-    case '7': case '8': case '9': case 'A': case 'B': case 'C': {
-      int index = (key == 'A') ? 3 : (key == 'B') ? 4 : (key == 'C') ? 5 : (key - '1');
-      int frequency = baseFrequencies[index] + toneShift;
-      note = "CDEFGABCDFA"[index];
-      tone(buzzerPin, frequency, 300); // Graj dźwięk przez 300 ms
-      break;
-    }
-    case '*':
-      sequence = ""; // Resetowanie sekwencji
-      lcd.clear();
-      lcd.setCursor(0, 0);
-      lcd.print("Reset sekwencji");
-      delay(1000);
-      break;
+  // Wylicz częstotliwość na podstawie klawisza i przypisz odpowiednią nazwę nuty
+  int index = -1;
+  if (key >= '1' && key <= '9') {
+    index = key - '1'; // Mapowanie 1-9 na indeksy 0-8
+  } else if (key == 'A') {
+    index = 3; // F
+    note = 'F';
+  } else if (key == 'B') {
+    index = 4; // G
+    note = 'G';
+  } else if (key == 'C') {
+    index = 5; // A
+    note = 'A';
+  }
 
-    case '0': {
-      lcd.clear();
-      lcd.setCursor(0, 0);
-      lcd.print("Odtwarzanie");
-      for (int i = 0; i < sequence.length(); i++) {
-        if (sequence[i] != ' ') {
-          playToneAndGetNoteName(sequence[i]);
-          delay(500);
-        }
-      }
-      break;
-    }
-
-    case '#':
-      toneShift += 80; // Zwiększ tonację
-      lcd.clear();
-      lcd.setCursor(0, 0);
-      lcd.print("Zwiekszono ton");
-      delay(1000);
-      break;
-
-    case 'D':
-      toneShift -= 10; // Zmniejsz tonację
-      lcd.clear();
-      lcd.setCursor(0, 0);
-      lcd.print("Zmniejszono ton");
-      delay(1000);
-      break;
-
-    default:
-      break;
+  if (index != -1) {
+    int frequency = baseFrequencies[index] + toneShift;
+    note = "CDEFGABCDFA"[index]; // Pobierz nazwę nuty z tablicy
+    tone(buzzerPin, frequency, 500); // Graj dźwięk przez 500 ms
+    delay(500); // Dłuższe wybrzmiewanie dźwięku
+    noTone(buzzerPin); // Wyłączenie dźwięku
+    delay(100); // Przerwa między dźwiękami
   }
 
   return note;
+}
+
+void playSequence() {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  // lcd.print("Odtwarzanie...");
+
+  for (int i = 0; i < sequence.length(); i++) {
+    char currentNote = sequence[i];
+    if (currentNote != ' ') { // Ignoruj spacje w sekwencji
+      char noteName = playToneAndGetNoteName(currentNote);
+      lcd.setCursor(0, 1);
+      lcd.print("Nuta: ");
+      lcd.print(noteName);
+      delay(600); // Krótkie opóźnienie na wyświetlanie nazwy nuty
+    }
+  }
+  delay(500);
+  lcd.setCursor(0, 1);
+  lcd.print("Koniec!       "); // Wyczyść linię po zakończeniu
+  delay(1000);
 }
 
 void setup() {
   // Inicjalizacja LCD
   lcd.begin(16, 2); // Wyświetlacz 16x2
   lcd.setCursor(0, 0);
-  // lcd.print("Nacisnij klawisz");
+  lcd.print("Gotowy!");
 
   // Ustawienie pinu buzzera jako wyjście
   pinMode(buzzerPin, OUTPUT);
@@ -106,27 +101,47 @@ void loop() {
 
   // Jeśli klawisz został naciśnięty
   if (key) {
-    // Pobierz odpowiadającą literę dla klawisza
-    char note = playToneAndGetNoteName(key);
-
-    // Dodaj literę do sekwencji, jeśli nie jest to klawisz specjalny
-    if (note != '?' && key != '*' && key != '0' && key != '#' && key != 'D') {
-      if (sequence.length() < 16) { // Maksymalna długość jednej linii LCD
-        sequence += note;
-        sequence += " "; // Dodaj spacje między literami
-      } else {
-        sequence = note; // Rozpocznij nową linię sekwencji
-        sequence += " ";
-      }
-
-      // Wyświetl sekwencję na LCD
+    if (key == '*') { // Resetowanie
+      sequence = "";
+      toneShift = 0;
       lcd.clear();
       lcd.setCursor(0, 0);
-      // lcd.print("Sekwencja:");
+      lcd.print("Reset sekwencji");
+      delay(1000);
+    } else if (key == '0') { // Odtwarzanie sekwencji
+      playSequence();
+    } else if (key == '#') { // Zwiększenie tonacji
+      toneShift += 100;
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Zwiekszono ton");
       lcd.setCursor(0, 1);
-      lcd.print(sequence);
-    }
+      lcd.print("Shift: ");
+      lcd.print(toneShift);
+      delay(1000);
+    } else if (key == 'Z') { // Zmniejszenie tonacji
+      toneShift -= 100;
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Zmniejszono ton");
+      lcd.setCursor(0, 1);
+      lcd.print("Shift: ");
+      lcd.print(toneShift);
+      delay(1000);
+    } else { // Dodanie klawisza do sekwencji
+      char noteName = playToneAndGetNoteName(key); // Graj dźwięk i pobierz nazwę nuty
+      if (noteName != '?') {
+        
+        sequence += key; // Dodaj do sekwencji
+        sequence += " "; // Dodaj spację dla czytelności
 
-    delay(500); // Krótkie opóźnienie, aby zobaczyć efekt
+        // Wyświetl sekwencję na LCD
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        // lcd.print("Sekwencja:");
+        lcd.setCursor(0, 1);
+        lcd.print(sequence);
+      }
+    }
   }
 }
